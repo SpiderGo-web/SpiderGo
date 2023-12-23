@@ -1,0 +1,18 @@
+import Test from "./src/components/Test.spider"
+
+<go>
+    headline := "APP"
+    body := "This is the app body."
+</go>
+<style>
+    app {
+        background-color: #000000
+    }
+</style>
+<web>
+    <div class="app">
+        <h1>{{ Headline }}</h1>
+        <p> {{ Body }} </p>
+        <Test />
+    </div>
+</web>

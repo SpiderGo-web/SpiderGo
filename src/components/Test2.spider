@@ -1,0 +1,15 @@
+<go>
+    headline := "Test2 Title"
+    body := "This is the test body also."
+</go>
+<style>
+    test {
+        background-color: #00FFFF
+    }
+</style>
+<web>
+    <div class="test">
+        <h1>{{ Headline }}</h1>
+        <p> {{ Body }} </p>
+    </div>
+</web>
