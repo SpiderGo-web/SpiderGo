@@ -47,20 +47,20 @@ func buildHtml(fileName string, tag string) {
 		}
 		cleanHtml = html.UnescapeString(out.String())
 	} else {
-		importHtml := strings.Join(htmlForFile, "\n                ") //fix indention
 		file, err := os.ReadFile("./public/App.html")
 		if err != nil {
 			log.Fatal(err)
 		}
 		lines := strings.Split(string(file), "\n")
 		tagLine, err := findLineInFile(fmt.Sprintf("<%v />", tag), file)
+		indentionCount := len(strings.Split(tagLine[0].lineContent, "<")[0])
+		importHtml := strings.Join(htmlForFile, ("\n" + strings.Repeat(" ", indentionCount))) //fix indention
 		if err != nil && err.Error() == "import not found" {
 			return
 		} else if err != nil {
 			log.Fatal(err)
 		}
-		lines[tagLine[0].lineNumber-1] = fmt.Sprintf("                %v", importHtml) //fix indention
-		fmt.Println(lines[tagLine[0].lineNumber-1])
+		lines[tagLine[0].lineNumber-1] = fmt.Sprintf((strings.Repeat(" ", indentionCount) + "%v"), importHtml) //fix indention
 		cleanHtml = strings.Join(lines, "\n")
 	}
 	createAppHtml(cleanHtml)
@@ -75,7 +75,6 @@ func buildHtml(fileName string, tag string) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(line)
 		importFile := strings.Split(importLine[0], "from")
 		trimmedImportFile := strings.Trim(importFile[1], " \"")
 		importTag := strings.Split(importFile[0], " ")
