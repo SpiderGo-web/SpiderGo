@@ -47,7 +47,7 @@ func buildHtml(fileName string, tag string) {
 		}
 		cleanHtml = html.UnescapeString(out.String())
 	} else {
-		importHtml := strings.Join(htmlForFile, "\n")
+		importHtml := strings.Join(htmlForFile, "\n                ") //fix indention
 		file, err := os.ReadFile("./public/App.html")
 		if err != nil {
 			log.Fatal(err)
@@ -59,8 +59,8 @@ func buildHtml(fileName string, tag string) {
 		} else if err != nil {
 			log.Fatal(err)
 		}
+		lines[tagLine[0].lineNumber-1] = fmt.Sprintf("                %v", importHtml) //fix indention
 		fmt.Println(lines[tagLine[0].lineNumber-1])
-		lines[tagLine[0].lineNumber-1] = importHtml
 		cleanHtml = strings.Join(lines, "\n")
 	}
 	createAppHtml(cleanHtml)
