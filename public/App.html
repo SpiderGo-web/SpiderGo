@@ -1,18 +1,42 @@
-import Test from "./src/components/Test.spider"
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test SpiderGo</title>
+</head>
+<body>
+        import Test from "./src/components/Test.spider"
+        
+        <go>
+            headline := "APP"
+            body := "This is the app body."
+        </go>
+        <style>
+            app {
+                background-color: #000000
+            }
+        </style>
+        <web>
+            <div class="app">
+                <h1>{{ Headline }}</h1>
+                <p> {{ Body }} </p>
 <go>
-    headline := "APP"
-    body := "This is the app body."
+    headline := "Test Title"
+    body := "This is the test body."
 </go>
 <style>
-    app {
-        background-color: #000000
+    test {
+        background-color: #0000FF
     }
 </style>
 <web>
-    <div class="app">
+    <div class="test">
         <h1>{{ Headline }}</h1>
         <p> {{ Body }} </p>
-        <Test />
     </div>
 </web>
+            </div>
+        </web>
+</body>
+</html>

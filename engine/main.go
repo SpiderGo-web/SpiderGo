@@ -3,6 +3,7 @@ package engine
 import (
 	"bytes"
 	"fmt"
+	"html"
 	"html/template"
 	"io/fs"
 	"log"
@@ -11,46 +12,89 @@ import (
 	"strings"
 )
 
-func BuildApp() {
-	buildHtml("./src/App.spider")
+type FindLine struct {
+	lineNumber  int
+	lineContent string
 }
 
-func buildHtml(fileName string) {
-	var fileContent []byte
+func BuildApp() {
+	buildHtml("./src/App.spider", "")
+}
+
+func buildHtml(fileName string, tag string) {
+	var tmplt *template.Template
 	var out bytes.Buffer
+	var htmlForFile []string
+	var cleanHtml string
 	f, err := os.ReadFile(fileName)
 	if err != nil {
 		log.Fatal(err)
 	}
-	importsLine, _ := findLineInFile("import", f)
-	for _, line := range importsLine {
-		importLine, err := readFileByLines(line, line, f)
+	htmlForFile = append(htmlForFile, strings.Split(string(f), "\n")...)
+	if tag == "" {
+		tmplt, err = template.ParseFiles("./engine/html.tmpl")
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(importLine)
+		data := struct {
+			Body []string
+		}{
+			Body: htmlForFile,
+		}
+		err = tmplt.Execute(&out, data)
+		if err != nil {
+			log.Fatal(err)
+		}
+		cleanHtml = html.UnescapeString(out.String())
+	} else {
+		importHtml := strings.Join(htmlForFile, "\n")
+		file, err := os.ReadFile("./public/App.html")
+		if err != nil {
+			log.Fatal(err)
+		}
+		lines := strings.Split(string(file), "\n")
+		tagLine, err := findLineInFile(fmt.Sprintf("<%v />", tag), file)
+		if err != nil && err.Error() == "import not found" {
+			return
+		} else if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(lines[tagLine[0].lineNumber-1])
+		lines[tagLine[0].lineNumber-1] = importHtml
+		cleanHtml = strings.Join(lines, "\n")
+	}
+	createAppHtml(cleanHtml)
+	importsLine, err := findLineInFile("import", f)
+	if err != nil && err.Error() == "import not found" {
+		return
+	} else if err != nil {
+		log.Fatal(err)
+	}
+	for _, line := range importsLine {
+		importLine, err := readFileByLines(line.lineNumber, line.lineNumber, f)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(line)
 		importFile := strings.Split(importLine[0], "from")
 		trimmedImportFile := strings.Trim(importFile[1], " \"")
-		buildHtml(trimmedImportFile)
+		importTag := strings.Split(importFile[0], " ")
+		buildHtml(trimmedImportFile, importTag[1])
 	}
+}
+
+func createAppHtml(html string) {
+	err := os.Remove("./public/App.html")
 	if err != nil {
 		log.Fatal(err)
 	}
-	tmplt, err := template.New("./engine/html.tmpl").ParseFiles("./engine/html.tmpl")
+	file, err := os.OpenFile("./public/App.html", os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
-	data := struct {
-		Body []byte
-	}{
-		Body: f,
-	}
-	err = tmplt.Execute(&out, data)
+	defer file.Close()
+	_, err = file.WriteString(html)
 	if err != nil {
-		log.Fatal(err)
-	}
-	fileContent = out.Bytes()
-	if err := os.WriteFile("./public/App.html", fileContent, 0666); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -65,13 +109,13 @@ func readFileByLines(start int, finish int, file []byte) ([]string, error) {
 	return lines, nil
 }
 
-func findLineInFile(s string, f []byte) ([]int, error) {
-	var lineFound []int
+func findLineInFile(s string, f []byte) ([]FindLine, error) {
+	var lineFound []FindLine
 	temp := strings.Split(string(f), "\n")
 
 	for i, line := range temp {
 		if strings.Contains(line, s) {
-			lineFound = append(lineFound, i+1)
+			lineFound = append(lineFound, FindLine{i + 1, line})
 		}
 	}
 	if len(lineFound) < 1 {
