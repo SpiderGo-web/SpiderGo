@@ -3,13 +3,14 @@
     body := "This is the test body."
 </go>
 <style>
-    test {
-        background-color: #0000FF
+    .test {
+        background-color: #0000FF;
+        color: #222222;
     }
 </style>
 <web>
-    <div class="test">
-        <h1>{{ Headline }}</h1>
-        <p> {{ Body }} </p>
-    </div>
+<div class="test">
+    <h2>{{ headline }}</h2>
+    <p>{{ body }}</p>
+</div>
 </web>

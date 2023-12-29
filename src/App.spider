@@ -5,14 +5,15 @@ import Test from "./src/components/Test.spider"
     body := "This is the app body."
 </go>
 <style>
-    app {
-        background-color: #000000
+    .app {
+        background-color: #000000;
+        color: #ffffff;
     }
 </style>
 <web>
-    <div class="app">
-        <h1>{{ Headline }}</h1>
-        <p> {{ Body }} </p>
-        <Test />
-    </div>
+<div class="app">
+    <h1>{{ headline }}</h1>
+    <p>{{ body }}</p>
+    <Test />
+</div>
 </web>

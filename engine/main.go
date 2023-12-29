@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"io/fs"
 	"log"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,6 +18,13 @@ type FindLine struct {
 	lineContent string
 }
 
+type GoCmd struct {
+	cmdName  string
+	cmdValue string
+}
+
+var randClassIdStrings []string
+
 func BuildApp() {
 	buildHtml("./src/App.spider", "")
 }
@@ -26,11 +34,96 @@ func buildHtml(fileName string, tag string) {
 	var out bytes.Buffer
 	var htmlForFile []string
 	var cleanHtml string
+	var goCmds []GoCmd
+	var updateWeb []string
+	var updateStyle []string
 	f, err := os.ReadFile(fileName)
 	if err != nil {
 		log.Fatal(err)
 	}
-	htmlForFile = append(htmlForFile, strings.Split(string(f), "\n")...)
+	randClassString := randString(16)
+	randClassIdStrings = append(randClassIdStrings, randClassString)
+	goTagOpen, err := findLineInFile("<go>", f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	goTagClose, err := findLineInFile("</go>", f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	loadGoCode, err := readFileByLines(goTagOpen[0].lineNumber, goTagClose[0].lineNumber, f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	removeGoTag := loadGoCode[1 : len(loadGoCode)-1]
+	goCmds = goCompiler(removeGoTag)
+	styleTagOpen, err := findLineInFile("<style>", f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	styleTagClose, err := findLineInFile("</style>", f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	loadstyleCode, err := readFileByLines(styleTagOpen[0].lineNumber, styleTagClose[0].lineNumber, f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	removeStyleTag := loadstyleCode[1 : len(loadstyleCode)-1]
+	for i, l := range removeStyleTag {
+		if len(updateStyle) < 1 {
+			updateStyle = removeStyleTag
+		}
+		if strings.Contains(l, " {") {
+			class := strings.Split(l, " {")
+			class[0] = class[0] + "-" + randClassString
+			updateStyle[i] = strings.Join(class, " {")
+		} else {
+			updateStyle[i] = l
+		}
+	}
+	createSpiderCss(strings.Join(updateStyle, "\n"))
+	webTagOpen, err := findLineInFile("<web>", f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	webTagClose, err := findLineInFile("</web>", f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	loadWebCode, err := readFileByLines(webTagOpen[0].lineNumber, webTagClose[0].lineNumber, f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	removeWebTag := loadWebCode[1 : len(loadWebCode)-1]
+	for i, l := range removeWebTag {
+		randAdded := false
+		if len(updateWeb) < 1 {
+			updateWeb = removeWebTag
+		}
+		if strings.Contains(l, "class=") {
+			class := strings.Split(l, "\"")
+			class[1] = class[1] + "-" + randClassString
+			updateWeb[i] = strings.Join(class, "\"")
+			randAdded = true
+		}
+		if strings.Contains(l, "id=") {
+			id := strings.Split(l, "\"")
+			id[1] = id[1] + "-" + randClassString
+			updateWeb[i] = strings.Join(id, "\"")
+			randAdded = true
+		}
+		for _, t := range goCmds {
+			if strings.Contains(l, t.cmdName) {
+				start := strings.Split(l, "{{")[0]
+				end := strings.Split(l, "}}")[1]
+				updateWeb[i] = start + strings.Trim(t.cmdValue, "\"") + end
+			} else if !randAdded && !strings.Contains(l, "{{") {
+				updateWeb[i] = l
+			}
+		}
+	}
+	htmlForFile = append(htmlForFile, updateWeb...)
 	if tag == "" {
 		tmplt, err = template.ParseFiles("./engine/html.tmpl")
 		if err != nil {
@@ -47,7 +140,7 @@ func buildHtml(fileName string, tag string) {
 		}
 		cleanHtml = html.UnescapeString(out.String())
 	} else {
-		file, err := os.ReadFile("./public/App.html")
+		file, err := os.ReadFile("./public/spider.html")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -63,7 +156,7 @@ func buildHtml(fileName string, tag string) {
 		lines[tagLine[0].lineNumber-1] = fmt.Sprintf((strings.Repeat(" ", indentionCount) + "%v"), importHtml) //fix indention
 		cleanHtml = strings.Join(lines, "\n")
 	}
-	createAppHtml(cleanHtml)
+	createSpiderHtml(cleanHtml)
 	importsLine, err := findLineInFile("import", f)
 	if err != nil && err.Error() == "import not found" {
 		return
@@ -82,12 +175,12 @@ func buildHtml(fileName string, tag string) {
 	}
 }
 
-func createAppHtml(html string) {
-	err := os.Remove("./public/App.html")
+func createSpiderHtml(html string) {
+	err := os.Remove("./public/spider.html")
 	if err != nil {
 		log.Fatal(err)
 	}
-	file, err := os.OpenFile("./public/App.html", os.O_RDWR|os.O_CREATE, 0666)
+	file, err := os.OpenFile("./public/spider.html", os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -98,12 +191,44 @@ func createAppHtml(html string) {
 	}
 }
 
+func createSpiderCss(css string) {
+	var currentCss []string
+	oldCssFile, err := os.ReadFile("./public/spider.css")
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = os.Remove("./public/spider.css")
+	if err != nil {
+		log.Fatal(err)
+	}
+	file, err := os.OpenFile("./public/spider.css", os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+	currentCssFile := strings.FieldsFunc(string(oldCssFile), splitCssFile)
+	for i, sel := range currentCssFile {
+		fmt.Println(sel)
+		if strings.Contains(sel, "-") && strings.Contains(strings.Join(randClassIdStrings, "\n"), strings.Trim(strings.Split(sel, "-")[1], " ")) {
+			currentCss = append(currentCss, currentCssFile[i]+"{"+currentCssFile[i+1]+"\n    }")
+		}
+	}
+	joinedCss := css + "\n" + strings.Join(currentCss, "\n")
+	_, err = file.WriteString(joinedCss)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func splitCssFile(r rune) bool {
+	return string(r) == "{" || string(r) == "}"
+}
+
 func readFileByLines(start int, finish int, file []byte) ([]string, error) {
-	length := (finish + 1) - start
-	lines := make([]string, length)
+	var lines []string
 	fileLines := strings.Split(string(file), "\n")
-	for i := start - 1; i < length; i++ {
-		lines[i] = fileLines[i]
+	for i := start - 1; i < finish; i++ {
+		lines = append(lines, fileLines[i])
 	}
 	return lines, nil
 }
@@ -122,6 +247,28 @@ func findLineInFile(s string, f []byte) ([]FindLine, error) {
 	}
 
 	return lineFound, nil
+}
+
+func goCompiler(goCode []string) []GoCmd {
+	var commands []GoCmd
+	for _, line := range goCode {
+		// get vars
+		if strings.Contains(line, ":=") {
+			l := strings.Split(line, ":=")
+			commands = append(commands, GoCmd{strings.Trim(l[0], " "), strings.TrimLeft(l[1], " ")})
+		}
+	}
+	return commands
+}
+
+func randString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyz1234567890"
+	sb := strings.Builder{}
+	sb.Grow(length)
+	for i := 0; i < length; i++ {
+		sb.WriteByte(charset[rand.Intn(len(charset))])
+	}
+	return sb.String()
 }
 
 func findSpiderFiles(root, ext string) []string {
