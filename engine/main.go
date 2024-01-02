@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -37,6 +38,9 @@ func buildHtml(fileName string, tag string) {
 	var goCmds []GoCmd
 	var updateWeb []string
 	var updateStyle []string
+	var ifBlockIndex []int
+	var ifLogic string
+	var ifBlock []string
 	f, err := os.ReadFile(fileName)
 	if err != nil {
 		log.Fatal(err)
@@ -113,17 +117,45 @@ func buildHtml(fileName string, tag string) {
 			updateWeb[i] = strings.Join(id, "\"")
 			randAdded = true
 		}
+		if strings.Contains(l, "{#if") {
+			ifLogic = strings.Split(strings.Split(l, "{#if ")[1], "}")[0]
+			endIf, err := findLineInFile("{/if}", []byte(strings.Join(removeWebTag, "\n")))
+			if err != nil {
+				log.Fatal(err)
+			}
+			ifBlock, err = readFileByLines(i+2, endIf[0].lineNumber-1, []byte(strings.Join(removeWebTag, "\n")))
+			if err != nil {
+				log.Fatal(err)
+			}
+			for j := i + 1; j < endIf[0].lineNumber-1; j++ {
+				ifBlockIndex = append(ifBlockIndex, j)
+			}
+		}
 		for _, t := range goCmds {
-			if strings.Contains(l, t.cmdName) {
+			if slices.Contains(ifBlockIndex, i) {
+				if ifLogic == t.cmdName && t.cmdValue == "true" {
+					updateWeb[i] = strings.Join(ifBlock, "\n")
+				} else {
+					updateWeb[i] = ""
+				}
+			} else if strings.Contains(l, "{#if ") || strings.Contains(l, "{/if}") {
+				updateWeb[i] = ""
+			} else if strings.Contains(l, t.cmdName) && strings.Contains(l, "{{") {
 				start := strings.Split(l, "{{")[0]
 				end := strings.Split(l, "}}")[1]
 				updateWeb[i] = start + strings.Trim(t.cmdValue, "\"") + end
-			} else if !randAdded && !strings.Contains(l, "{{") {
+			} else if !randAdded && !strings.Contains(l, "{{") && !strings.Contains(l, "{#if ") && !strings.Contains(l, "{/if}") {
 				updateWeb[i] = l
 			}
 		}
 	}
-	htmlForFile = append(htmlForFile, updateWeb...)
+	var test []string
+	for _, l := range updateWeb {
+		if l != "" {
+			test = append(test, l)
+		}
+	}
+	htmlForFile = append(htmlForFile, test...)
 	if tag == "" {
 		tmplt, err = template.ParseFiles("./engine/html.tmpl")
 		if err != nil {
@@ -208,7 +240,6 @@ func createSpiderCss(css string) {
 	defer file.Close()
 	currentCssFile := strings.FieldsFunc(string(oldCssFile), splitCssFile)
 	for i, sel := range currentCssFile {
-		fmt.Println(sel)
 		if strings.Contains(sel, "-") && strings.Contains(strings.Join(randClassIdStrings, "\n"), strings.Trim(strings.Split(sel, "-")[1], " ")) {
 			currentCss = append(currentCss, currentCssFile[i]+"{"+currentCssFile[i+1]+"\n    }")
 		}
