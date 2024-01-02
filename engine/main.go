@@ -41,6 +41,7 @@ func buildHtml(fileName string, tag string) {
 	var ifBlockIndex []int
 	var ifLogic string
 	var ifBlock []string
+	var updatedIfBlock string
 	f, err := os.ReadFile(fileName)
 	if err != nil {
 		log.Fatal(err)
@@ -123,7 +124,17 @@ func buildHtml(fileName string, tag string) {
 			if err != nil {
 				log.Fatal(err)
 			}
+			var ifWithoutIndention []string
 			ifBlock, err = readFileByLines(i+2, endIf[0].lineNumber-1, []byte(strings.Join(removeWebTag, "\n")))
+			ifSplitBySpaces := strings.Split(strings.Join(ifBlock, "\n"), " ")
+			for _, l := range ifSplitBySpaces {
+				if l != "" {
+					ifWithoutIndention = append(ifWithoutIndention, l)
+				}
+			}
+			ifIndention := len(ifSplitBySpaces) - len(ifWithoutIndention)
+			updatedIfBlock = strings.Join(append(strings.Split(strings.Repeat(" ", ifIndention-4), ""), ifWithoutIndention...), "")
+			fmt.Println(updatedIfBlock)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -134,7 +145,7 @@ func buildHtml(fileName string, tag string) {
 		for _, t := range goCmds {
 			if slices.Contains(ifBlockIndex, i) {
 				if ifLogic == t.cmdName && t.cmdValue == "true" {
-					updateWeb[i] = strings.Join(ifBlock, "\n")
+					updateWeb[i] = updatedIfBlock
 				} else {
 					updateWeb[i] = ""
 				}
