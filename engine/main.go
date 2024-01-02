@@ -133,7 +133,7 @@ func buildHtml(fileName string, tag string) {
 				}
 			}
 			ifIndention := len(ifSplitBySpaces) - len(ifWithoutIndention)
-			updatedIfBlock = strings.Join(append(strings.Split(strings.Repeat(" ", ifIndention-4), ""), ifWithoutIndention...), "")
+			updatedIfBlock = strings.Join(append(strings.Split(strings.Repeat(" ", ifIndention-6), ""), ifWithoutIndention...), " ")
 			fmt.Println(updatedIfBlock)
 			if err != nil {
 				log.Fatal(err)
