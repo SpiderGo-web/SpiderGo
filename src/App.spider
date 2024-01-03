@@ -1,4 +1,5 @@
-import Test from "./src/components/Test.spider"
+import AddToList from "./src/components/AddToList.spider"
+import TodoList from "./src/components/TodoList.spider"
 
 <go>
     headline := "APP"
@@ -12,8 +13,8 @@ import Test from "./src/components/Test.spider"
 </style>
 <web>
 <div class="app">
-    <h1>{{ headline }}</h1>
-    <p>{{ body }}</p>
-    <Test />
+    <h1>ToDo List</h1>
+    <AddToList />
+    <TodoList />
 </div>
 </web>

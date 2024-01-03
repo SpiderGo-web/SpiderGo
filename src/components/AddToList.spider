@@ -1,0 +1,17 @@
+<go>
+    newItem := ""
+    func handleAddClick(e) {
+
+    }
+</go>
+<style>
+    .addInput {
+        background-color: #00FFFF
+    }
+</style>
+<web>
+    <div class="addInput">
+        <input type="text" id="add" name="add" placeholder="Add new item" />
+        <button class="add-btn" onclick="handleAddClick()">Add</button>
+    </div>
+</web>

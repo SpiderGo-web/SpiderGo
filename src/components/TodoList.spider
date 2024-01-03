@@ -3,12 +3,12 @@
     body := "This is the test body also."
 </go>
 <style>
-    test {
+    .list {
         background-color: #00FFFF
     }
 </style>
 <web>
-    <div class="test">
+    <div class="list">
         <h1>{{ Headline }}</h1>
         <p> {{ Body }} </p>
     </div>
