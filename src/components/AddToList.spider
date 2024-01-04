@@ -6,7 +6,11 @@
 </go>
 <style>
     .addInput {
-        background-color: #00FFFF
+        background-color: #00FFFF;
+    }
+    .add-btn {
+        background-color: transparent;
+        boarder: none;
     }
 </style>
 <web>
