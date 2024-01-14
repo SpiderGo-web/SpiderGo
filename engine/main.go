@@ -48,29 +48,13 @@ func buildHtml(fileName string, tag string) {
 	}
 	randClassString := randString(16)
 	randClassIdStrings = append(randClassIdStrings, randClassString)
-	goTagOpen, err := findLineInFile("<go>", f)
-	if err != nil {
-		log.Fatal(err)
-	}
-	goTagClose, err := findLineInFile("</go>", f)
-	if err != nil {
-		log.Fatal(err)
-	}
-	loadGoCode, err := readFileByLines(goTagOpen[0].lineNumber, goTagClose[0].lineNumber, f)
+	loadGoCode, err := parseTag("go", f)
 	if err != nil {
 		log.Fatal(err)
 	}
 	removeGoTag := loadGoCode[1 : len(loadGoCode)-1]
 	goCmds = goCompiler(removeGoTag)
-	styleTagOpen, err := findLineInFile("<style>", f)
-	if err != nil {
-		log.Fatal(err)
-	}
-	styleTagClose, err := findLineInFile("</style>", f)
-	if err != nil {
-		log.Fatal(err)
-	}
-	loadstyleCode, err := readFileByLines(styleTagOpen[0].lineNumber, styleTagClose[0].lineNumber, f)
+	loadstyleCode, err := parseTag("style", f)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,15 +72,7 @@ func buildHtml(fileName string, tag string) {
 		}
 	}
 	createSpiderCss(strings.Join(updateStyle, "\n"))
-	webTagOpen, err := findLineInFile("<web>", f)
-	if err != nil {
-		log.Fatal(err)
-	}
-	webTagClose, err := findLineInFile("</web>", f)
-	if err != nil {
-		log.Fatal(err)
-	}
-	loadWebCode, err := readFileByLines(webTagOpen[0].lineNumber, webTagClose[0].lineNumber, f)
+	loadWebCode, err := parseTag("web", f)
 	if err != nil {
 		log.Fatal(err)
 	}
